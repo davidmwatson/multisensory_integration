@@ -105,7 +105,6 @@ class pyfftw_FourierFilter(object):
     Create an instance of the filtering class, passing our filter and also a
     pre-existing wisdom file.
 
-    >>> from utils.imageprocessing import pyfftw_FourierFilter
     >>> filterer = pyfftw_FourierFilter(imsize=im.shape, filt=filt,
     ...                                 wisdom_filepath='./pyfftw_wisdom.pkl')
 
@@ -202,8 +201,7 @@ class pyfftw_FourierFilter(object):
 
     def filter(self, im):
         """
-        Apply filter to given image and return filtered array.  Can be passed
-        to postproc argument of utils.videostreaming.VideoStream class.
+        Apply filter to given image and return filtered array.
 
         Arguments
         ---------
@@ -388,7 +386,6 @@ def createFourierFilter(imsize, mode, filter_type, filter_kwargs={},
     Cardinal-pass orientation Gaussian filter with 30 degree FWHM for a
     512x512 pixel image.
 
-    >>> from utils.imageprocessing import fwhm2sigma
     >>> fwhm = np.radians(30)
     >>> sigma = fwhm2sigma(fwhm)
     >>> filt = createFourierFilter(
