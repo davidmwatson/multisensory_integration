@@ -220,9 +220,8 @@ class TouchScreenReader(object):
                         _res[2,:] /= self.half_resolution[1]
 
                     # Update return values
-                    if _res.size > 0:
-                        res = _res
-                        success = True
+                    res = _res
+                    success = True
 
         # Transmission error, do required error action
         except Exception as e:
