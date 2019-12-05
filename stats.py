@@ -178,13 +178,11 @@ class _BaseFitFunction(object):
             a = self.ymin
             b = self.lapse
             if isinstance(b, (int, float)):
-                self._invfunc = lambda y, *p: np.asarray(
-                        fun((np.asarray(y) - a) / (1-a-b), *p)
-                        )
+                self._invfunc = lambda y, *p: fun((np.asarray(y) - a) \
+                                                  / (1-a-b), *p)
             else:  # optimise
-                self._invfunc = lambda y, *p: np.asarray(
-                        fun((np.asarray(y) - a) / (1 - a - p[-1]), *p[:-1])
-                        )
+                self._invfunc = lambda y, *p: fun((np.asarray(y) - a) \
+                                                  / (1 - a - p[-1]), *p[:-1])
 
     def _assertFitDone(self):
         if self.fit is None:
