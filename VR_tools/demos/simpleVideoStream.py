@@ -141,8 +141,8 @@ fix_objs = [visual.Line(win, (-r,0), (r,0), lineColor='red', lineWidth=2,
             visual.Circle(win, radius=r, lineColor='red', units='pix')]
 
 # Set up text stim for fps (only used if showing FPS)
-fps_txt = visual.TextStim(win, text='', pos=(-0.9,0.9), alignHoriz='left',
-                          alignVert='top', units='norm')
+fps_txt = visual.TextStim(win, text='', pos=(-0.9,0.8), alignHoriz='left',
+                          units='norm')
 
 # List storing window flips (only used if showing FPS)
 flip_times = []
