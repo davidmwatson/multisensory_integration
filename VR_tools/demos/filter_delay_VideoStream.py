@@ -29,7 +29,7 @@ else:
 block to provide protection from multiprocessing !!
 """
 
-wisdom_default = os.path.realpath('./py37_fftw_752x480_mono_wisdom.pkl')
+wisdom_default = os.path.realpath('./py36_fftw_752x480_mono_wisdom.pkl')
 
 
 ##### Custom function and class definitions ######

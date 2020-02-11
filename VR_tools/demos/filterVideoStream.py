@@ -23,7 +23,7 @@ from videostreaming import FrameStim
 from imageprocessing import (fwhm2sigma, createFourierFilter,
                              pyfftw_FourierFilter)
 
-wisdom_default = os.path.realpath('./py37_fftw_752x480_mono_wisdom.pkl')
+wisdom_default = os.path.realpath('./py36_fftw_752x480_mono_wisdom.pkl')
 
 
 ###### Begin main script ######
