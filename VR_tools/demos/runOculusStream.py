@@ -1,23 +1,40 @@
+#!/usr/bin/env python3
 """
-Runs a simple unaltered video stream on Oculus display
+Runs a simple unaltered video stream on Oculus display via a combination
+of the PsychoPy [1] and PsychXR [2] libraries.
 
-Requires psychxr module, and PsychoPy > v3
+!!! Updated for PsychXR v0.2.1+, which contains the necessary bug fixes for
+ASW that prevent display shaking while head-locked.
+
+Requirements
+------------
+* Psychopy >= 2020.1.0    (1st version with support for PsychXR v0.2)
+* PsychXR >= 0.2.1    (1st version with ASW bug fix)
+* Recommended Python == 3.6. PsychXR can be installed on Python > 3.6 but will
+  need compiling from source. If using Python 3.6, PsychXR can be installed
+  much more easily via pip.
+  
+References
+----------
+[1] Peirce et al. (2019). PsychoPy2: experiments in behavior made easy.
+    Behavior Research Methods. DOI:10.3758/s13428-018-01193-y
+    https://link.springer.com/article/10.3758%2Fs13428-018-01193-y
+
+[2] Cutone, M. D. & Wilcox, L. M. (2019). PsychXR (Version 0.2.0) [Software].
+    Available from https://github.com/mdcutone/psychxr
 """
 
 import sys
-from psychopy import visual, event
+from psychopy import visual, event, gui, core
 
 # local imports
 sys.path.append('../')
 from videostreaming import OpenCV_VideoStream, uEyeVideoStream, FrameStim
 
 
-### Key settings
+### Key settings ###
 
-backend = 'opencv'  # choose from: opencv, uEye1, uEye2
-
-mag_factor = 0.5
-
+# Params for each camera backend (will choose which backend at runtime)
 opencv_settings = {'fps':30,
                    'colour_mode':'mono',
                    'vertical_reverse':False,
@@ -30,15 +47,29 @@ uEye1_settings = {'pixel_clock':'max',
                   'auto_exposure':'camera',
                   'auto_gain_control':'camera'}
 
-uEye2_settings = {'pixel_clock':68,
-                  'fps':45,
+uEye2_settings = {'pixel_clock':50,
+                  'fps':30,
                   'colour_mode':'bgr',
                   'block':False,
-                  'exposure':6,
+                  'exposure':5,
                   'auto_exposure':False,
                   'auto_gain_control':'software',
                   'auto_white_balance':'software',
                   'colour_correction':True}
+
+
+
+
+### Begin main script ###
+    
+# Runtime settings
+config = {'Backend':['uEye2','uEye1','opencv'], 'Magnification':0.5}
+dlg = gui.DlgFromDict(config, title='Runtime Settings')
+if not dlg.OK:
+    print('User cancelled')
+    core.quit()
+backend = config['Backend']
+mag_factor = config['Magnification']
 
 if backend == 'opencv':
     camera_settings = opencv_settings
@@ -47,12 +78,9 @@ elif backend == 'uEye1':
 elif backend == 'uEye2':
     camera_settings = uEye2_settings
 
-
-### Begin main script ###
-
 # Open hmd window
-hmd = visual.Rift(monoscopic=True, color=-1,  warnAppFrameDropped=False)
-
+hmd = visual.Rift(monoscopic=True, headLocked=True, color=-1, 
+                  warnAppFrameDropped=False)
 
 # Open video stream
 if backend in ['uEye1','uEye2']:
@@ -61,20 +89,22 @@ else:
     stream = OpenCV_VideoStream(**opencv_settings)
 
 # Set up framestim
-disp_size = [x * mag_factor for x in hmd.size]
+disp_size = [x * mag_factor for x in hmd._hmdBufferSize]
 framestim = FrameStim(hmd, rescale='resize', display_size=disp_size,
                       interpolate=True)
 
 # Begin main loop
-timestamps = []
 KEEPGOING = True
 while KEEPGOING:
-    # Update frame
-    frame = stream.get_frame()
-    framestim.frame = frame
+    # We have to update tracking on each frame (regardless of head-locking)
+    trackingState = hmd.getTrackingState()
+    hmd.calcEyePoses(trackingState.headPose.thePose)
+    hmd.setDefaultView()
+    
+    # Update frame & display
+    framestim.frame = stream.get_frame()
     framestim.draw()
-    t = hmd.flip()
-    timestamps.append(t)
+    hmd.flip()
 
     # Check for quit events
     if len(event.getKeys(keyList=['escape','q'])) > 0:
@@ -84,11 +114,3 @@ while KEEPGOING:
 stream.close()
 hmd.close()
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-frameDiffs = 1/np.diff(timestamps)
-fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10,6))
-ax1.plot(frameDiffs)
-ax2.hist(frameDiffs, bins=50)
-fig.show()
