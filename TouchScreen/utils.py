@@ -296,58 +296,35 @@ class MyElementArrayStim(ElementArrayStim):
         x[x > high] -=  (high-low)
         x[x < low] += (high-low)
 
-    def update_dots(self, dxy='rand', prop=1, idcs='rand'):
+    def update_dots(self, dxy='rand', prop=1):
         """
         Update dot co-ordinates, either randomly or in a particular direction
 
         Arguments
         ---------
-        dxy : 'rand', [x,y] array-like, or N*2 array
+        dxy : None, 'rand', or [x,y] array-like
             If 'rand', just randomly update the dots. If an [x,y] array then
-            move the dots in direction specified by this vector. If an N*2
-            array, then supplies [x,y] vectors for every dot (note: overrides
-            <prop>, and must match length of <idcs> if it is also an array).
+            move the dots in direction specified by this vector.
         prop : float in range 0:1
             Proportion of dots to update. Selection of which dots is random.
-            Ignored if <dxy> and / or <idcs> are arrays.
-        idcs : None, 'rand', or array-like of indices
-            Indices indicating which dots to update. If None, updates first N
-            dots (N = number of dots * <prop>). If 'rand', picks a random
-            subset of N dots. If array-like, specify indices of dots manually
-            (note: length of array must match the number of dots * <prop>
-            if <dxy> == 'rand', or the length of <dxy> if it is an N*2 array).
         """
-        # Work out how many dots to update
-        if np.ndim(dxy) == 2:
-            propN = len(dxy)
-        else:
-            propN = int(round(self.nElements * prop))
-
-        # Work out which dots to update
-        if isinstance(idcs, slice):
-            pass
-        elif idcs is None:
-            idcs = slice(propN)
-        elif isinstance(idcs, str) and idcs == 'rand':
-            idcs = np.random.choice(self.nElements, size=propN, replace=False)
-        elif isinstance(idcs, (range, tuple, list, np.ndarray)):
-            if isinstance(idcs, range):
-                idcs = list(idcs)
-            idcs = np.asarray(idcs)
-            propN = len(idcs)
-        else:
-            raise ValueError(f'Invalid value for idcs: {idcs}')
+        # Work out how many and which dots to update
+        propN = int(round(self.nElements * prop))
+        idcs = np.random.choice(self.nElements, size=propN, replace=False)
 
         # If random update, just randomly update coords
-        if isinstance(dxy, str) and dxy == 'rand':
+        if dxy == 'rand':
             self._xys[idcs, :] = self._generate_coords(propN)
+
         # If directional update, increment coords by specified amount, and
         # wrap any dots that fall outside of window limits
-        elif isinstance(dxy, (list, tuple, np.ndarray)):
+        elif isinstance(dxy, (list, tuple, np.ndarray)) and len(dxy) == 2:
             self._xys[idcs, :] += np.round(dxy).astype(int)
             self._wrap(self._xys[:,0], -self.W2, self.W2)
             self._wrap(self._xys[:,1], -self.H2, self.H2)
+
         else:
             raise ValueError(f'Invalid value for dxy: {dxy}')
 
         self.setXYs(self._xys)
+
