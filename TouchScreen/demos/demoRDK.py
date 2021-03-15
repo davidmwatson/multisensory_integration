@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Demonstrates dot stimulus and touch screen inputs. Basically runs like
+Demonstrates RDK stimulus and touch screen inputs. Basically runs like
 a trial of the main experiment, but it lasts forever.
 """
 
@@ -11,7 +11,7 @@ from psychopy import visual, core, gui, event, monitors
 
 # Local imports
 sys.path.append('../')
-from utils import TouchScreenReader, MyElementArrayStim
+from utils import TouchScreenReader, RDK
 
 
 ### Key vars ###
@@ -56,8 +56,8 @@ win = visual.Window(fullscr=fullscr, allowGUI=False, color=-1,
                     units='pix', monitor=monitor)
 winWidth, winHeight = win.size
 
-# Init element stim
-elementStim = MyElementArrayStim(win, nElements=nDots, sizes=dotSz)
+# Init RDK
+rdkStim = RDK(win, nElements=nDots, sizes=dotSz)
 
 
 ## Present stimulus
@@ -75,7 +75,7 @@ while True:
 
     # Randomly update all dots every <dotDur> frames
     if frameN % dotDur == 0:
-        elementStim.update_dots()
+        rdkStim.update_dots()
 
     # Check for (most recent) touch input
     success, res = reader.get_coords()
@@ -89,12 +89,12 @@ while True:
 
         # Update dots if necessary
         if any(dxy):
-            elementStim.update_dots(dxy, coherence)
+            rdkStim.update_dots(dxy, coherence)
     else:
         touch_xy1 = None
 
     # Display
-    elementStim.draw()
+    rdkStim.draw()
     t = win.flip()
     frameN += 1
 

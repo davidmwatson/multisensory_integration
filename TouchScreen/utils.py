@@ -6,6 +6,7 @@ import numpy as np
 from psychopy.visual.elementarray import ElementArrayStim
 
 
+### Touch screen utilies ###
 
 def findPortAddress(regexp='/dev/ttyACM.*', include_links=False):
     """
@@ -248,10 +249,29 @@ class TouchScreenReader(object):
         self.port.close()
 
 
+### Stimulus utilities ###
 
-class MyElementArrayStim(ElementArrayStim):
+def polar2cart(r, theta):
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    return x,y
+
+def cart2polar(x, y):
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    return r, theta
+
+def wrap_coords(x, low, high):
     """
-    Sub-classes ElementArrayStim to provide customised dot-stim object.
+    Wraps vector x into interval low:high, operating in-place
+    """
+    x[x > high] -=  (high-low)
+    x[x < low] += (high-low)
+
+
+class RDK(ElementArrayStim):
+    """
+    Sub-classes ElementArrayStim to provide customised RDK object.
 
     Arguments
     ---------
@@ -272,7 +292,7 @@ class MyElementArrayStim(ElementArrayStim):
 
         # Initialise array co-ords - prepend with underscore as they need to
         # be kept separate from ElementArrayStim's .xys array
-        self._xys = self._generate_coords(nElements)
+        self._xys = self.generate_coords(nElements)
 
         # Update kwargs and init parent class
         kwargs['nElements'] = nElements
@@ -283,18 +303,12 @@ class MyElementArrayStim(ElementArrayStim):
         kwargs['xys'] = self._xys
         super().__init__(win, *args, **kwargs)
 
-    def _generate_coords(self, N):
+    def generate_coords(self, N):
         """Hidden function, returns Nx2 array of random x,y co-ords"""
         xy = np.random.randint(low=(-self.W2, -self.H2),
                                high=(self.W2+1, self.H2+1),
                                size=(N, 2))
         return xy
-
-    @staticmethod
-    def _wrap(x, low, high):
-        """Wraps vector x into interval low:high, operating in-place"""
-        x[x > high] -=  (high-low)
-        x[x < low] += (high-low)
 
     def update_dots(self, dxy='rand', prop=1):
         """
@@ -302,29 +316,199 @@ class MyElementArrayStim(ElementArrayStim):
 
         Arguments
         ---------
-        dxy : None, 'rand', or [x,y] array-like
+        dxy : 'rand', or [x,y] array-like
             If 'rand', just randomly update the dots. If an [x,y] array then
             move the dots in direction specified by this vector.
         prop : float in range 0:1
             Proportion of dots to update. Selection of which dots is random.
         """
         # Work out how many and which dots to update
-        propN = int(round(self.nElements * prop))
-        idcs = np.random.choice(self.nElements, size=propN, replace=False)
+        N = int(round(self.nElements * prop))
+        idcs = np.random.choice(self.nElements, size=N, replace=False)
 
         # If random update, just randomly update coords
-        if dxy == 'rand':
-            self._xys[idcs, :] = self._generate_coords(propN)
+        if isinstance(dxy, str) and dxy == 'rand':
+            self._xys[idcs, :] = self.generate_coords(N)
 
         # If directional update, increment coords by specified amount, and
         # wrap any dots that fall outside of window limits
         elif isinstance(dxy, (list, tuple, np.ndarray)) and len(dxy) == 2:
             self._xys[idcs, :] += np.round(dxy).astype(int)
-            self._wrap(self._xys[:,0], -self.W2, self.W2)
-            self._wrap(self._xys[:,1], -self.H2, self.H2)
+            wrap_coords(self._xys[:,0], -self.W2, self.W2)
+            wrap_coords(self._xys[:,1], -self.H2, self.H2)
 
         else:
             raise ValueError(f'Invalid value for dxy: {dxy}')
 
         self.setXYs(self._xys)
 
+
+class GlassPattern(ElementArrayStim):
+    """
+    Sub-classes ElementArrayStim to provide customised glass-pattern object.
+
+    Arguments
+    ---------
+    nPairs : int
+        Number of dot pairs. Substitutes nElements argument for normal
+        ElementArrayStim, equivalent to half that number.
+    offset : int or float
+        Distance between dots in each pair, in pixels.
+
+    Other arguments as per ElementArrayStim, but some defaults are different.
+
+    Methods
+    -------
+    .update_coords - Update dot co-ordinates (random or specific direction)
+    """
+    __doc__ += ElementArrayStim.__doc__
+    def __init__(self, win, nPairs=2500, offset=15, fieldShape=None,
+                 elementTex=None, elementMask='circle', units='pix',
+                 *args, **kwargs):
+
+        # Assign args to class
+        self.nPairs = nPairs
+        self.offset = offset
+
+        # Get win dims
+        self.W, self.H = win.size
+        self.W2 = self.W//2
+        self.H2 = self.H//2
+
+        # Initialise array co-ords - prepend with underscore as they need to
+        # be kept separate from ElementArrayStim's .xys array
+        xy1 = self.generate_pair1_coords(self.nPairs)
+        xy2 = self.generate_pair2_coords(xy1, theta='rand')
+        self._xys = (xy1, xy2)
+
+        # Update kwargs and init parent class
+        kwargs['nElements'] = nPairs * 2
+        kwargs['fieldShape'] = fieldShape
+        kwargs['elementTex'] = elementTex
+        kwargs['elementMask'] = elementMask
+        kwargs['units'] = units
+        kwargs['xys'] = np.vstack(self._xys)
+        super().__init__(win, *args, **kwargs)
+
+
+    def generate_pair1_coords(self, N):
+        """
+        Generate co-oords for first dot in each pair. Simply generates a
+        random array of x,y co-ords.
+
+        Arguments
+        ---------
+        N : int
+            Number of dots/pairs to generate
+
+        Returns
+        -------
+        xy1 : array
+            [nDots, 2] array of x,y co-ords for first dot in each pair
+        """
+        xy1 = np.random.randint(low=(-self.W2, -self.H2),
+                                high=(self.W2+1, self.H2+1),
+                                size=(N, 2))
+        return xy1
+
+    def generate_pair2_coords(self, xy1, theta='rand'):
+        """
+        Generate co-ords for second dot in each pair.
+
+        Arguments
+        ---------
+        xy1 : array
+            [nDots, 2] array of x,y co-ords for first dot in each pair
+            (see .generate_pair1_coords() method)
+        theta : 'rand', float, or array-like
+            Angle to rotate second dots around first dots. If 'rand', assign
+            randomly for each pair. If a float, specifies constant angle (in
+            radians) apply to all pairs (in radians). If an array, specifies
+            angle (in radians) for each dot in xy1.
+
+        Returns
+        -------
+        xy2 : array
+            [nDots, 2] array of x,y co-ords for second dot in each pair
+        """
+        # Check theta
+        if theta == 'rand':
+            theta = np.random.rand(len(xy1)) * 2 * np.pi
+        elif not hasattr(theta, '__iter__'):
+            theta = np.repeat(theta, len(xy1))
+        elif not len(theta) == len(xy1):
+            raise ValueError('Array-like theta must be same length as xy1')
+
+        # Init magnitudes
+        r = np.full(len(xy1), self.offset)
+
+        # Convert to magnitudes+thetas to cartesian, add to xy1
+        dxy = np.around(polar2cart(r, theta)).astype(int).T
+        xy2 = xy1 + dxy
+        wrap_coords(xy2[:,0], -self.W2, self.W2)
+        wrap_coords(xy2[:,1], -self.H2, self.H2)
+
+        # Return
+        return xy2
+
+    def update_dots(self, signal_dxy=None, prop_signal=None,
+                    update_signal=True, update_noise=True):
+        """
+        Update dot pairs. Signal pairs are oriented to lie parallel to the
+        signal_dxy vector, while noise pairs are oriented randomly. Selection
+        of which pairs are "signal" and which are "noise" is random, but the
+        proportion allocated to each can be controlled.
+
+        Arguments
+        ---------
+        signal_dxy : [x,y] array-like
+            Angle the signal pairs in the direction specified by the [x,y]
+            vector. Can be ignored if update_signal is False.
+        prop_signal : float in range 0:1
+            Proportion of pairs to treat as signal pairs. Can be ignored if
+            update_signal is False, and will be set to 0 in this case.
+        update_signal : bool
+            Indicates whether to update signal pairs. If False, overrides
+            prop_signal and instead treats all pairs as noise pairs.
+        update_noise : bool
+            Indicates whether to update noise pairs. If False, only signal
+            pairs will be updated.
+
+        """
+        if update_signal:
+            if signal_dxy is None or prop_signal is None:
+                raise ValueError('Must specify signal_dxy and prop_signal '
+                                 'if update_signal is True')
+        else:
+            prop_signal = 0
+
+        # Work out how many dots to update
+        N_signal = int(round(self.nPairs * prop_signal))
+        N_noise = self.nPairs - N_signal
+
+        # Choose random signal and noise pairs to be updated
+        idcs = np.random.permutation(self.nPairs)
+        signal_idcs = idcs[:N_signal]
+        noise_idcs = idcs[N_signal:]
+
+        # Get pair co-ords
+        xy1, xy2 = self._xys
+
+        # Update signal dots?
+        if update_signal:
+            theta = cart2polar(*signal_dxy)[1]
+            xy1[signal_idcs, :] = self.generate_pair1_coords(N_signal)
+            xy2[signal_idcs, :] = self.generate_pair2_coords(
+                xy1[signal_idcs, :], theta=theta
+                )
+
+        # Update noise dots?
+        if update_noise:
+            xy1[noise_idcs, :] = self.generate_pair1_coords(N_noise)
+            xy2[noise_idcs, :] = self.generate_pair2_coords(
+                xy1[noise_idcs, :], theta='rand'
+                )
+
+        # Update class variables
+        self._xys = (xy1, xy2)
+        self.setXYs(np.vstack(self._xys))

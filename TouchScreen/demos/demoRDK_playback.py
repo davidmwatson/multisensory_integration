@@ -2,7 +2,7 @@
 
 """
 Uses cubic spline interpolation of touch inputs to play animation of
-dot stimulus back.
+RDK stimulus back.
 
 Recording trial lasts forever until screen is touched, then will record inputs
 for 2 seconds before ending trial and moving on to playback.
@@ -16,7 +16,7 @@ from psychopy import visual, core, gui, event, monitors
 
 # Local imports
 sys.path.append('../')
-from utils import TouchScreenReader, MyElementArrayStim
+from utils import TouchScreenReader, RDK
 
 
 ### Key vars ###
@@ -70,8 +70,8 @@ win = visual.Window(fullscr=fullscr, allowGUI=False, color=-1,
                     units='pix', monitor=monitor)
 winWidth, winHeight = win.size
 
-# Init element stim
-elementStim = MyElementArrayStim(win, nElements=nDots, sizes=dotSz)
+# Init RDK
+rdkStim = RDK(win, nElements=nDots, sizes=dotSz)
 
 # Text stim for recording status
 recordTxt = visual.TextStim(win, pos=(0, 0.9), height=0.15, units='norm', bold=True)
@@ -120,7 +120,7 @@ while True:
 
         # Randomly update all dots every <dotDur> frames
         if frameN % dotDur == 0:
-            elementStim.update_dots()
+            rdkStim.update_dots()
 
         # Check for (most recent) touch input
         success, res = reader.get_coords()
@@ -141,7 +141,7 @@ while True:
 
             # Update dots if necessary
             if any(dxy != 0):
-                elementStim.update_dots(dxy, coherence)
+                rdkStim.update_dots(dxy, coherence)
 
             # Update circle
             touchCirc.setPos(touch_xy1)
@@ -150,7 +150,7 @@ while True:
             touch_xy1 = None
 
         # Display
-        elementStim.draw()
+        rdkStim.draw()
         recordTxt.draw()
         if success:
             touchCirc.draw()
@@ -195,7 +195,7 @@ while True:
 
         # Randomly update all dots every <dotDur> frames
         if frameN % dotDur == 0:
-            elementStim.update_dots()
+            rdkStim.update_dots()
 
         # Only update on frames we have touch signal for
         success = all(~np.isnan(touch_xy2))
@@ -207,7 +207,7 @@ while True:
 
             # Update dots if necessary
             if any(dxy != 0):
-                elementStim.update_dots(dxy, coherence)
+                rdkStim.update_dots(dxy, coherence)
 
             # Update circle
             touchCirc.setPos(touch_xy1)
@@ -216,7 +216,7 @@ while True:
             touch_xy1 = None
 
         # Display
-        elementStim.draw()
+        rdkStim.draw()
         recordTxt.draw()
         if success:
             touchCirc.draw()
