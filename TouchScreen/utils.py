@@ -67,7 +67,6 @@ def findPortAddress(regexp='/dev/ttyACM.*', include_links=False):
         raise OSError(f'Multiple matching ports: {matches}')
 
 
-
 class TouchScreenReader(object):
     """
     Provides methods for connecting to and reading touch data from Display++
@@ -251,10 +250,16 @@ class TouchScreenReader(object):
 
 ### Stimulus utilities ###
 
+def rotateVector(xy, theta):
+    """Rotate vector xy by angle theta (in radians)"""
+    R = np.array([[np.cos(theta), -np.sin(theta)],
+                  [np.sin(theta), np.cos(theta)]])
+    return R @ np.asarray(xy)
+
 def polar2cart(r, theta):
     x = r * np.cos(theta)
     y = r * np.sin(theta)
-    return x,y
+    return x, y
 
 def cart2polar(x, y):
     r = np.sqrt(x**2 + y**2)
@@ -345,14 +350,14 @@ class RDK(ElementArrayStim):
 
 class GlassPattern(ElementArrayStim):
     """
-    Sub-classes ElementArrayStim to provide customised glass-pattern object.
+    Sub-classes ElementArrayStim to provide customised Glass pattern object.
 
     Arguments
     ---------
     nPairs : int
         Number of dot pairs. Substitutes nElements argument for normal
         ElementArrayStim, equivalent to half that number.
-    offset : int or float
+    separation : int
         Distance between dots in each pair, in pixels.
 
     Other arguments as per ElementArrayStim, but some defaults are different.
@@ -362,13 +367,13 @@ class GlassPattern(ElementArrayStim):
     .update_coords - Update dot co-ordinates (random or specific direction)
     """
     __doc__ += ElementArrayStim.__doc__
-    def __init__(self, win, nPairs=2500, offset=15, fieldShape=None,
+    def __init__(self, win, nPairs, separation, fieldShape=None,
                  elementTex=None, elementMask='circle', units='pix',
                  *args, **kwargs):
 
         # Assign args to class
         self.nPairs = nPairs
-        self.offset = offset
+        self.separation = separation
 
         # Get win dims
         self.W, self.H = win.size
@@ -413,7 +418,9 @@ class GlassPattern(ElementArrayStim):
 
     def generate_pair2_coords(self, xy1, theta='rand'):
         """
-        Generate co-ords for second dot in each pair.
+        Generate co-ords for second dot in each pair. Each dot translated
+        and rotated from first dot in each pair. Separation specified in
+        class instantiation, and rotation specified here.
 
         Arguments
         ---------
@@ -440,9 +447,9 @@ class GlassPattern(ElementArrayStim):
             raise ValueError('Array-like theta must be same length as xy1')
 
         # Init magnitudes
-        r = np.full(len(xy1), self.offset)
+        r = np.full(len(xy1), self.separation)
 
-        # Convert to magnitudes+thetas to cartesian, add to xy1
+        # Convert magnitudes+thetas to cartesian, add to xy1
         dxy = np.around(polar2cart(r, theta)).astype(int).T
         xy2 = xy1 + dxy
         wrap_coords(xy2[:,0], -self.W2, self.W2)
@@ -473,7 +480,6 @@ class GlassPattern(ElementArrayStim):
         update_noise : bool
             Indicates whether to update noise pairs. If False, only signal
             pairs will be updated.
-
         """
         if update_signal:
             if signal_dxy is None or prop_signal is None:

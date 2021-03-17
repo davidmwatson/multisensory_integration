@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Demonstrates glass-pattern stimulus and touch screen inputs.
+Demonstrates Glass pattern stimulus and touch screen inputs.
 """
 
 import sys
@@ -10,7 +10,7 @@ from psychopy import visual, core, gui, event, monitors
 
 # Local imports
 sys.path.append('../')
-from utils import TouchScreenReader, GlassPattern
+from utils import TouchScreenReader, GlassPattern, rotateVector
 
 
 ### Key vars ###
@@ -18,25 +18,20 @@ from utils import TouchScreenReader, GlassPattern
 # Stimuli details
 nPairs = 2500
 dotSz = 4  # in pixels
-dotDur = 30  # in frames
+dotSeparation = 7  # in pixels
+dotDur = 60  # in frames
 
 # Monitor details
 monitorRate = 120
 monitor = monitors.Monitor('Display++')
 
 
-### Custom funcs ###
-def rotateVector(xy, theta):
-    """Rotate vector xy by angle theta (in radians)"""
-    R = np.array([[np.cos(theta), -np.sin(theta)],
-                  [np.sin(theta), np.cos(theta)]])
-    return R @ np.asarray(xy)
-
-
 ### Begin setup ###
 
 # Get info
-infodict = {'Full Screen':True, 'Rotation':0, 'Coherence':0.5,
+infodict = {'Full Screen':True,
+            'Rotation':0,
+            'Coherence':0.8,
             'Color code':False}
 dlg = gui.DlgFromDict(infodict)
 if not dlg.OK:
@@ -57,7 +52,7 @@ win = visual.Window(fullscr=fullscr, allowGUI=False, color=-1,
 winWidth, winHeight = win.size
 
 # Init glass pattern
-glassStim = GlassPattern(win, nPairs=nPairs, sizes=dotSz)
+glassStim = GlassPattern(win, nPairs, dotSeparation, sizes=dotSz)
 if color_code:
     colors = [(1,-1,-1)] * nPairs + [(-1,0,1)] * nPairs
     glassStim.setColors(colors)
@@ -98,7 +93,7 @@ while True:
 
     # Display
     glassStim.draw()
-    t = win.flip()
+    win.flip()
     frameN += 1
 
 
