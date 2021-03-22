@@ -458,7 +458,7 @@ class GlassPattern(ElementArrayStim):
         # Return
         return xy2
 
-    def update_dots(self, signal_dxy=None, prop_signal=None,
+    def update_dots(self, signal_theta=None, prop_signal=None,
                     update_signal=True, update_noise=True):
         """
         Update dot pairs. Signal pairs are oriented to lie parallel to the
@@ -468,9 +468,9 @@ class GlassPattern(ElementArrayStim):
 
         Arguments
         ---------
-        signal_dxy : [x,y] array-like
-            Angle the signal pairs in the direction specified by the [x,y]
-            vector. Can be ignored if update_signal is False.
+        signal_theta : float
+            Angle to orient signal pairs along (in radians). Can be ignored if
+            update_signal is False.
         prop_signal : float in range 0:1
             Proportion of pairs to treat as signal pairs. Can be ignored if
             update_signal is False, and will be set to 0 in this case.
@@ -482,8 +482,8 @@ class GlassPattern(ElementArrayStim):
             pairs will be updated.
         """
         if update_signal:
-            if signal_dxy is None or prop_signal is None:
-                raise ValueError('Must specify signal_dxy and prop_signal '
+            if signal_theta is None or prop_signal is None:
+                raise ValueError('Must specify signal_theta and prop_signal '
                                  'if update_signal is True')
         else:
             prop_signal = 0
@@ -502,10 +502,9 @@ class GlassPattern(ElementArrayStim):
 
         # Update signal dots?
         if update_signal:
-            theta = cart2polar(*signal_dxy)[1]
             xy1[signal_idcs, :] = self.generate_pair1_coords(N_signal)
             xy2[signal_idcs, :] = self.generate_pair2_coords(
-                xy1[signal_idcs, :], theta=theta
+                xy1[signal_idcs, :], theta=signal_theta
                 )
 
         # Update noise dots?

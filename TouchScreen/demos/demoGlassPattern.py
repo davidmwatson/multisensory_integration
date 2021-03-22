@@ -10,7 +10,7 @@ from psychopy import visual, core, gui, event, monitors
 
 # Local imports
 sys.path.append('../')
-from utils import TouchScreenReader, GlassPattern, rotateVector
+from utils import TouchScreenReader, GlassPattern, cart2polar
 
 
 ### Key vars ###
@@ -80,12 +80,14 @@ while True:
             # Compute movement vector between this and previous touch
             touch_xy2 = res[1:3]
             if touch_xy1 is not None:  # not 1st touch
-                dxy = rotateVector(touch_xy2 - touch_xy1, theta)
+                dxy = touch_xy2 - touch_xy1
             touch_xy1 = touch_xy2
 
             # Update dots if necessary
             if any(dxy):
-                glassStim.update_dots(dxy, coherence)
+                swipe_angle = cart2polar(*dxy)[1]
+                stim_angle = theta + swipe_angle
+                glassStim.update_dots(stim_angle, coherence)
 
         # If no touch inputs, or no movement, then update all pairs as noise
         if not success or not any(dxy):
